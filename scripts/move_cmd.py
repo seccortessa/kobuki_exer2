@@ -40,10 +40,10 @@ class move_pub:
             #deg = self.aa[2]*(180/np.pi)
             er = (self.param*(np.pi/180))-self.aa[2]
             control_signal = 4*(2*0.035/0.23)*er
+            if control_signal >= np.pi/6:
+                control_signal = np.pi/6
             self.vel.angular.z = control_signal
             self.pubvel.publish(self.vel)
-            if not(er < 0.0175):
-                print(self.aa[2])
             # rospy.loginfo(self.vel)
             #rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.pose.pose.orientation)
 
