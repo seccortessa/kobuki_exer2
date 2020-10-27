@@ -22,31 +22,33 @@ class move_pub:
 
         self.vel = Twist()
         self.mot = MotorPower()
-        self.aa = [0,0]
+        self.aa = 0.0
         self.param = 0.0
         key_timeout = rospy.get_param("~key_timeout", 0.0)
         if key_timeout == 0.0:
                 key_timeout = None
 
-        self.angle = None
+        self.distance = None
 
         self.getParameters()
 
-        if(self.angle is None):
+        if(self.distance is None):
             rospy.signal_shutdown("Parameters not declared")
         else:
             rospy.loginfo("Parameters found")
 
         def callback(data):
-            self.aa = euler_from_quaternion([data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w])
-            #deg = self.aa[2]*(180/np.pi)
-            er = (self.param*(np.pi/180))-self.aa[2]
-            control_signal = 4*(2*0.035/0.23)*er
-            self.vel.angular.z = control_signal
+            self.aa = data.pose.pose.position.x
+            err = self.param - self.aa
+            
+            self.vel.linear.x = 1 * err
+            if self.vel.linear.x >= 0.3:
+                self.vel.linear.x = 0.3 
             self.pubvel.publish(self.vel)
-            if not(er < 0.01):
-                print(self.aa[2])
-            # rospy.loginfo(self.vel)
+            """ self.vel.angular.z = control_signal
+            self.pubvel.publish(self.vel)"""
+            if not(err < 0.01):
+                rospy.loginfo(self.vel.linear.x) 
             #rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.pose.pose.orientation)
 
         
@@ -69,13 +71,33 @@ class move_pub:
 
     def getParameters(self):
         
-            if rospy.has_param('~angle'):     self.angle = rospy.get_param('~angle')
+            if rospy.has_param('~distance'):     self.distance = rospy.get_param('~distance')
 
-            rospy.set_param('~angle', self.angle)
+            rospy.set_param('~distance', self.distance)
 
     def DynConfCB(self, config, level):
-        self.param = config.angle
+        self.param = config.distance
         return config
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 '''         velocity = [0,1]
 
