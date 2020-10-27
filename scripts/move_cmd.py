@@ -88,15 +88,10 @@ class move_pub:
         # for i in range(1):
         while True:
             if self.angle_to_py == 45:
-                print("algo?")
                 self.angle_control(np.pi/2)
-                print("algo2")
                 self.linear_controly(1)
-                print("algo3")
                 self.angle_control(0)
-                print("algo4")
                 self.linear_controlx(1)
-                print("algo5")
 
         
         
