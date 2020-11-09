@@ -8,7 +8,7 @@
     <!-- ************************************************************************ -->
     <!-- Launch Gazebo-->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(arg empty_world)"/> 
+        <arg name="world_name" value="$(arg world_t2)"/> 
         <arg name="use_sim_time" value="true"/>
         <arg name="debug" value="false"/>
         <arg name="paused" value="false"/>
@@ -18,12 +18,12 @@
     <!-- Spawn Robot-->
 
     <!-- Robot initial pose -->
-    <arg name="x" default="0.0"/>
+    <arg name="x" default="-0.2"/>
     <arg name="y" default="0.0"/>
     <arg name="z" default="0.01"/>
     <arg name="roll" default="0.0"/>
     <arg name="pitch" default="0.0"/>
-    <arg name="yaw" default="$(eval 0 * 3.141592 / 180.0)"/>
+    <arg name="yaw" default="$(eval -180 * 3.141592 / 180.0)"/>
 
     <arg name="robot_name" value="kobuki"/>
 

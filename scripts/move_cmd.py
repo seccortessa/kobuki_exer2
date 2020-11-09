@@ -28,18 +28,35 @@ class move_pub:
         self.positionx = None
         self.positiony = None
 
+        #CAMBIO DE COORDENADA
+
+        self.theta = -np.pi
+        self.R = np.array([(np.cos(self.theta), -np.sin(self.theta),0,-0.2),(np.sin(self.theta),np.cos(self.theta),0,0),(0,0,1,0),(0,0,0,1)])
+        self.R1 = np.linalg.inv(self.R)
+
         #ATRIBUTOS PARA PROGRAMA EN PYTHON
         self.angle_meas = 0.0
         self.posx_meas = 0.0
         self.posy_meas = 0.0
+
+        self.angle_meas2 = 0.0
+        self.posx_meas2 = 0.0
+        self.posy_meas2 = 0.0
         
-        self.angle_to_py = 0.0
+        self.angle_to_py = 45
         self.posx_to_py = 0.0
         self.posy_to_py = 0.0
 
         self.error_angle = 1
         self.error_linearx = 1
         self.error_lineary = 1
+        self.error_hip = 1
+
+        self.coord_act = False
+        self.cont = 1
+
+        self.target = np.array([(-3.5),(0),(0),(1)])  # coordenadas de meta en el marco de ref del mundo
+        self.angle_init = -np.pi
 
 
         key_timeout = rospy.get_param("~key_timeout", 0.0)
@@ -78,21 +95,44 @@ class move_pub:
         #INICIAMOS EL MOTOR
         self.turn_on_mot()
 
-
-        #control para el angulo
-        ''' while True:
-            self.angle_control(self.angle_to_py*(np.pi/180))
-            self.linear_controlx(self.posx_to_py)
-            #self.linear_controly(self.posy_to_py) '''
-
-        # for i in range(1):
+        #################################PROGRAMA PRINCIPAL#################################################3------------------------------
+        
         while True:
-            if self.angle_to_py == 45:
-                self.angle_control(np.pi/2)
-                self.linear_controly(1)
-                self.angle_control(0)
-                self.linear_controlx(1)
+            if self.coord_act:
+                if self.cont == 1:
+                    
+                    self.linear_control([-3.5,0])
+                    self.angle_control(-np.pi/2)
+                    self.linear_control([-3.5,3.5])
+                    self.angle_control(-np.pi)
+                    self.linear_control([1.5,3.5])
+                    self.angle_control(np.pi/2)
+                    self.linear_control([1.5,-1.5])
+                    self.angle_control(np.pi)
+                    self.linear_control([3.5,-1.5])
+                    self.angle_control(np.pi/2)
+                    self.linear_control([3.5,-8])
+                    self.angle_control(0)
+                    self.linear_control([-2.5,-8])
+                    self.angle_control(-np.pi/2)
+                    self.linear_control([-2.5,-5.5])
+                    self.angle_control(-np.pi)
+                    self.linear_control([1.5,-5.5])
+                    self.angle_control(-np.pi/2)
+                    self.linear_control([1.5,-3.5])
+                    self.angle_control(0)
+                    self.linear_control([-1,-3.5])
+                    ''' self.ctrl_diag(self.target)
+                    self.ctrl_diag(np.array([(-3.5),(3.5),(0),(1)]))
+                    self.ctrl_diag(np.array([(1.5),(3.5),(0),(1)]))
+                    self.ctrl_diag(np.array([(1.5),(-1.5),(0),(1)]))
+                    self.ctrl_diag(np.array([(2),(1),(0),(1)]))
+                    self.ctrl_diag(np.array([(2),(1),(0),(1)]))
+                    self.ctrl_diag(np.array([(2),(1),(0),(1)])) '''
+                    self.cont = 0
+                    print(self.angle_meas2)
 
+            
         
         
 
@@ -117,12 +157,12 @@ class move_pub:
 
     #CALLBACK PARA ACTUALIZACIÓN DE PARÁMETROS
     def DynConfCB(self, config, level):
-        self.angle_to_py = config.angle
+        #self.angle_to_py = config.angle
         self.posx_to_py = config.positionx
         self.posy_to_py = config.positiony
-        print("se actualizó")
         return config
 
+    #ENCENDER EL MOTOR
     def turn_on_mot(self):
 
         rate = rospy.Rate(30)
@@ -136,16 +176,22 @@ class move_pub:
             self.angle_meas = euler_from_quaternion([data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w])[2]
             self.posx_meas = data.pose.pose.position.x
             self.posy_meas = data.pose.pose.position.y
+            self.tf()
+            #print((180/np.pi)*self.angle_meas2)
+            #self.R = np.array([(np.cos(self.angle_meas2), -np.sin(self.angle_meas2),0,-0.2),(np.sin(self.angle_meas2),np.cos(self.angle_meas2),0,0),(0,0,1,0),(0,0,0,1)])
+            #self.R1 = np.linalg.inv(self.R)
 
-            #self.error_angle = self.angle_to_py - self.angle_meas
-            #self.error_linearx = self.posx_to_py - self.posx_meas
-            #self.error_lineary = self.posy_to_py - self.posy_meas
-              
+
+
+
+            
+ 
     def angle_control(self,ang):
+        
         self.error_angle = (ang)-self.angle_meas
-        while np.abs(self.error_angle) >= 0.01:
-            #self.error_angle = (ang)-self.angle_meas
-            control_signal = 4*(2*0.035/0.23)*self.error_angle
+        while np.abs(self.error_angle) >= 0.0001:
+            
+            control_signal = 2*self.error_angle
 
             if control_signal >= np.pi/6:
                 control_signal = np.pi/6
@@ -155,12 +201,17 @@ class move_pub:
             self.vel.angular.z = control_signal
             self.pubvel.publish(self.vel)
             self.error_angle = (ang)-self.angle_meas
+        self.vel.angular.z = 0.0
+        self.pubvel.publish(self.vel)
+            
 
-    def linear_controlx(self,xval):
-        self.error_linearx = (xval) - (self.posx_meas)
-        while np.abs(self.error_linearx) >= 0.01:
-            #error = self.error_linearx
-            control_signal = 1 * self.error_linearx
+    def linear_control(self,target):
+        #self.error_linearx = (dist) - self.posx_meas
+        dist = np.sqrt(np.power((self.posx_meas2-target[0]),2)+np.power((self.posy_meas2-target[1]),2))
+        #la distancia ente el punto donde estoy y el punto destino es el error
+        while dist >= 0.07:
+            
+            control_signal = 1 * dist
             
             if control_signal >= 0.3:
                 control_signal = 0.3 
@@ -169,12 +220,14 @@ class move_pub:
 
             self.vel.linear.x = control_signal
             self.pubvel.publish(self.vel)
-            self.error_linearx = (xval) - (self.posx_meas)
+            dist = np.sqrt(np.power((self.posx_meas2-target[0]),2)+np.power((self.posy_meas2-target[1]),2))
+        self.vel.linear.x = 0.0
+        self.pubvel.publish(self.vel)
             
 
 
-    def linear_controly(self,yval):
-        self.error_lineary = (yval) - (self.posy_meas)
+    ''' def linear_controly(self,yval):
+        self.error_lineary = (yval) - (np.abs(self.posy_meas))
         while np.abs(self.error_lineary) >= 0.01:
             #error = self.error_lineary
             control_signal = 1 * self.error_lineary
@@ -186,4 +239,44 @@ class move_pub:
 
             self.vel.linear.x = control_signal
             self.pubvel.publish(self.vel)
-            self.error_lineary = (yval) - (self.posy_meas)
+            self.error_lineary = (yval) - (np.abs(self.posy_meas)) '''
+
+    def tf(self):
+        pose_R = np.array([(self.posx_meas),(self.posy_meas),(0),(1)])
+        pose_L = np.matmul(self.R1,pose_R)
+        self.posx_meas2 = pose_L[0]
+        self.posy_meas2 = pose_L[1]
+        a = self.angle_meas + self.theta
+        if a > np.pi:
+            a = a - 2*np.pi
+        if a < -np.pi:
+            a = a + 2*np.pi
+        self.angle_meas2 = a
+
+        self.coord_act = True
+
+
+
+    def tf_to_robot(self,v,t):
+        self.R = np.array([(np.cos(t), -np.sin(t),0,self.posx_meas2),(np.sin(t),np.cos(t),0,self.posy_meas2),(0,0,1,0),(0,0,0,1)])
+        R1 = np.linalg.inv(self.R)
+        b = np.matmul(R1,v)
+        return b
+
+    def tf_to_world(self,v):
+        b = np.matmul(self.R1,v)
+        return b    
+
+
+    def ctrl_diag(self,target):
+        
+        print("anglemeas2 is: ",self.angle_meas2)
+        print("pos x 2 is: ",self.posx_meas2)
+        print("pos y 2 is: ",self.posy_meas2)
+        target_robot = self.tf_to_robot(target,self.angle_meas2)
+        print("target robot is",target_robot)
+        angulo2 = np.arctan2(target_robot[1],target_robot[0])
+        print("angulo entre punto y target: ",(180/np.pi)*angulo2)
+        
+        self.angle_control(angulo2)
+        self.linear_control(target)
